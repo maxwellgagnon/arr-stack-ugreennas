@@ -6,7 +6,7 @@ check_uptime_monitors() {
     local repo_root
     repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || repo_root="."
 
-    # Expected monitors (services that should have HTTP monitors)
+    # Expected monitors (services that should be monitored)
     local expected=(
         "Bazarr"
         "duc"
@@ -16,6 +16,7 @@ check_uptime_monitors() {
         "Pi-hole"
         "Prowlarr"
         "qBittorrent"
+        "qbit-scheduler"
         "Radarr"
         "Sonarr"
         "Traefik"
