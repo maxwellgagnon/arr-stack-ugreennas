@@ -255,12 +255,10 @@ Add the output to `.env`: `TRAEFIK_DASHBOARD_AUTH=admin:$$apr1$$...`
 
 ## Step 3: External Access (Optional)
 
-<details>
-<summary><strong>Access services from anywhere (phone, travelling, etc.)</strong></summary>
-
 For local-only access, skip this section and use URLs like `http://NAS_IP:8096`.
 
-### Option A: Cloudflare Tunnel (Recommended)
+<details>
+<summary><strong>Option A: Cloudflare Tunnel (Recommended)</strong></summary>
 
 Cloudflare Tunnel connects outbound from your server, bypassing port forwarding and ISP restrictions. Uses wildcard DNS so you only need 2 records for all services.
 
@@ -311,7 +309,10 @@ docker run --rm -v ./cloudflared:/home/nonroot/.cloudflared cloudflare/cloudflar
 
 **5. Deploy** (see Step 4)
 
-### Option B: Port Forwarding + DNS
+</details>
+
+<details>
+<summary><strong>Option B: Port Forwarding + DNS</strong></summary>
 
 Traditional approach - requires your ISP to allow incoming connections.
 
@@ -334,12 +335,7 @@ Traditional approach - requires your ISP to allow incoming connections.
 | 443 | NAS_IP | 8443 | TCP |
 | 51820 | NAS_IP | 51820 | UDP |
 
-<details>
-<summary><strong>Ugreen NAS Note</strong></summary>
-
-Ugreen NAS (nginx) uses ports 80/443 and auto-repairs its config. This stack uses Traefik on ports 8080/8443 instead. Configure router to forward external 80→8080 and 443→8443.
-
-</details>
+> **Ugreen NAS Note:** Ugreen NAS (nginx) uses ports 80/443 and auto-repairs its config. This stack uses Traefik on ports 8080/8443 instead. Configure router to forward external 80→8080 and 443→8443.
 
 **4. Add Domain to .env:**
 ```bash
