@@ -10,7 +10,8 @@ Complete setup guide for the media automation stack. Works on any Docker host wi
 - [Step 3: External Access (Optional)](#step-3-external-access-optional)
 - [Step 4: Deploy Services](#step-4-deploy-services)
 - [Step 5: Configure Services](#step-5-configure-services)
-- [Step 6: Verify](#step-6-verify)
+- [Step 6: Test](#step-6-test)
+- [Backup](#backup)
 - [Optional Utilities](#optional-utilities)
 
 **See also:** [Quick Reference](REFERENCE.md) · [Updating the Stack](UPDATING.md) · [Home Assistant Integration](HOME-ASSISTANT.md)
@@ -71,13 +72,12 @@ cd /volume1/docker
 sudo git clone https://github.com/Pharkie/arr-stack-ugreennas.git arr-stack  # or your fork
 sudo chown -R 1000:1000 /volume1/docker/arr-stack
 
-# Create additional config directories
-sudo mkdir -p /volume1/docker/arr-stack/{gluetun-config,jellyseerr/config,bazarr/config,uptime-kuma}
+# Prepare Traefik certificate storage
 sudo touch /volume1/docker/arr-stack/traefik/acme.json
 sudo chmod 600 /volume1/docker/arr-stack/traefik/acme.json
 ```
 
-**Note:** Use `sudo` for Docker commands on Ugreen NAS.
+**Note:** Use `sudo` for Docker commands on Ugreen NAS. Service configs are stored in Docker named volumes (auto-created on first run).
 
 </details>
 
@@ -100,8 +100,7 @@ cd /volume1/docker
 sudo git clone https://github.com/Pharkie/arr-stack-ugreennas.git arr-stack  # or your fork
 sudo chown -R 1000:1000 /volume1/docker/arr-stack
 
-# Create additional config directories
-sudo mkdir -p /volume1/docker/arr-stack/{gluetun-config,jellyseerr/config,bazarr/config,uptime-kuma}
+# Prepare Traefik certificate storage
 sudo touch /volume1/docker/arr-stack/traefik/acme.json
 sudo chmod 600 /volume1/docker/arr-stack/traefik/acme.json
 ```
@@ -124,13 +123,12 @@ cd /srv/docker
 sudo git clone https://github.com/Pharkie/arr-stack-ugreennas.git arr-stack  # or your fork
 sudo chown -R 1000:1000 /srv/docker/arr-stack
 
-# Create additional config directories
-sudo mkdir -p /srv/docker/arr-stack/{gluetun-config,jellyseerr/config,bazarr/config,uptime-kuma}
+# Prepare Traefik certificate storage
 sudo touch /srv/docker/arr-stack/traefik/acme.json
 sudo chmod 600 /srv/docker/arr-stack/traefik/acme.json
 ```
 
-**Note:** Adjust paths in docker-compose files if using different locations.
+**Note:** Adjust paths in docker-compose files if using different locations. Service configs are stored in Docker named volumes (auto-created on first run).
 
 </details>
 
@@ -144,16 +142,16 @@ sudo chmod 600 /srv/docker/arr-stack/traefik/acme.json
 │   └── movies/       # Movies (Radarr → Jellyfin)
 └── docker/
     └── arr-stack/
-        ├── gluetun-config/
-        ├── jellyseerr/config/
-        ├── bazarr/config/
-        ├── uptime-kuma/
-        └── traefik/
-            ├── traefik.yml
-            ├── acme.json      # SSL certificates (chmod 600)
-            └── dynamic/
-                └── tls.yml
+        ├── traefik/              # User-edited config (bind mount)
+        │   ├── traefik.yml
+        │   ├── acme.json         # SSL certificates (chmod 600)
+        │   └── dynamic/
+        │       └── tls.yml
+        └── cloudflared/          # User-edited config (bind mount)
+            └── config.yml
 ```
+
+> **Note:** Service data (Sonarr, Radarr, Jellyfin, etc.) is stored in Docker named volumes, automatically managed by Docker. Only `traefik/` and `cloudflared/` are local directories for user-edited configuration.
 
 ---
 
@@ -244,15 +242,7 @@ docker run --rm httpd:alpine htpasswd -nb admin 'your_chosen_password' | sed -e 
 ```
 Add the output to `.env`: `TRAEFIK_DASHBOARD_AUTH=admin:$$apr1$$...`
 
-### 2.4 Save Your Passwords
-
-| Service | Username | Password |
-|---------|----------|----------|
-| Pi-hole | (none) | Your Pi-hole password |
-| WireGuard | (none) | Your WireGuard password (NOT the hash) |
-| Traefik | admin | Your Traefik password |
-
-**Important:** The `.env` file contains secrets - never commit it to git. Keep a backup copy on your dev machine as `.env.nas.backup` (gitignored).
+**Important:** The `.env` file contains secrets - never commit it to git.
 
 ---
 
@@ -471,19 +461,11 @@ docker exec gluetun wget -qO- ifconfig.me
 
 **Network-wide ad-blocking:** Set your router's DHCP DNS to your host IP.
 
-### 5.9 Security Checklist
-
-Double-check you've secured your services (especially if using external access):
-
-| Service | Check |
-|---------|-------|
-| Sonarr/Radarr/Prowlarr | Authentication: Forms + Required: Enabled |
-| Bazarr | Authentication: Forms enabled |
-| qBittorrent | "Bypass for localhost" disabled, password changed |
+⚠️ **Security:** Admin services are local-only by default, but still recommend enabling authentication on Sonarr, Radarr, Prowlarr, Bazarr, and qBittorrent.
 
 ---
 
-## Step 6: Verify
+## Step 6: Test
 
 ### VPN Test
 ```bash
@@ -515,6 +497,29 @@ Setup complete! Now:
 **Other docs:** [Updating the Stack](UPDATING.md) · [Home Assistant Integration](HOME-ASSISTANT.md)
 
 Issues? [Report on GitHub](https://github.com/Pharkie/arr-stack-ugreennas/issues).
+
+---
+
+## Backup
+
+Service configurations are stored in Docker named volumes. To back them up:
+
+```bash
+# Run on NAS
+./scripts/backup-volumes.sh /volume1/backups/arr-stack-$(date +%Y%m%d)
+```
+
+This copies all service configs to a single directory. To restore:
+
+```bash
+# Example: restore jellyseerr config
+docker run --rm \
+  -v /volume1/backups/arr-stack-20241217/jellyseerr-config:/source:ro \
+  -v arr-stack_jellyseerr-config:/dest \
+  alpine cp -a /source/. /dest/
+```
+
+> **Note:** `traefik/` and `cloudflared/` are in the repo directory, backed up with git.
 
 ---
 

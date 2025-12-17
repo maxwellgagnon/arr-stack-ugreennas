@@ -81,8 +81,12 @@ This project uses **separate Docker Compose files** for each layer:
 │   ├── tv/           # TV shows
 │   └── movies/       # Movies
 └── docker/
-    └── arr-stack/    # Application configs
+    └── arr-stack/
+        ├── traefik/       # User-edited (bind mount)
+        └── cloudflared/   # User-edited (bind mount)
 ```
+
+**Service data** (Sonarr, Radarr, Jellyfin, etc.) is stored in Docker named volumes (e.g., `arr-stack_sonarr-config`), not in the repo directory. Use `scripts/backup-volumes.sh` to back them up.
 
 ---
 
@@ -164,10 +168,11 @@ The last two checks require SSH access to your NAS. They gracefully skip when:
 
 3. **Alternative: password auth** via `NAS_SSH_PASS` env var (requires `sshpass` installed)
 
-## Structure
+## Scripts Structure
 
 ```
 scripts/
+├── backup-volumes.sh       # Backup all Docker named volumes
 ├── pre-commit              # Main hook (symlinked from .git/hooks/)
 └── lib/
     ├── check-secrets.sh

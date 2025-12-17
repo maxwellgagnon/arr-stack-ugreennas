@@ -3,12 +3,15 @@
 # Centralized Volumes   #
 #########################
 volumes:
+  gluetun-config:
   qbittorrent-config:
   sonarr-config:
   prowlarr-config:
   radarr-config:
   jellyfin-config:
   jellyfin-cache:
+  jellyseerr-config:
+  bazarr-config:
   pihole-etc-pihole:
   pihole-etc-dnsmasq:
   wireguard-easy-config:
@@ -51,7 +54,7 @@ services:
     env_file:
       - .env
     volumes:
-      - /volume1/docker/arr-stack/gluetun-config:/gluetun
+      - gluetun-config:/gluetun
     environment:
       # VPN Configuration - see .env.example for provider-specific setup
       - VPN_SERVICE_PROVIDER=${VPN_SERVICE_PROVIDER:-surfshark}
@@ -322,7 +325,7 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-proxy"
     volumes:
-      - /volume1/docker/arr-stack/jellyseerr/config:/app/config
+      - jellyseerr-config:/app/config
     restart: unless-stopped
     logging: *default-logging
     healthcheck:
@@ -347,7 +350,7 @@ services:
       traefik-proxy:
         ipv4_address: 192.168.100.9
     volumes:
-      - /volume1/docker/arr-stack/bazarr/config:/config
+      - bazarr-config:/config
       - /volume1/Media/movies:/movies
       - /volume1/Media/tv:/tv
     labels:

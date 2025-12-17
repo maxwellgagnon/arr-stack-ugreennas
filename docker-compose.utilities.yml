@@ -10,6 +10,7 @@
 #########################
 volumes:
   duc-index:
+  uptime-kuma-data:
 
 #########################
 # Networks              #
@@ -69,7 +70,7 @@ services:
       traefik-proxy:
         ipv4_address: 192.168.100.13  # For monitoring other containers
     volumes:
-      - /volume1/docker/arr-stack/uptime-kuma:/app/data
+      - uptime-kuma-data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock:ro  # For Docker container monitoring
     logging: *default-logging
     healthcheck:
