@@ -249,7 +249,7 @@ Add the output to `.env`: `TRAEFIK_DASHBOARD_AUTH=admin:$$apr1$$...`
 | WireGuard | (none) | Your WireGuard password (NOT the hash) |
 | Traefik | admin | Your Traefik password |
 
-**Important:** The `.env` file contains secrets - never commit it to git.
+**Important:** The `.env` file contains secrets - never commit it to git. Keep a backup copy on your dev machine as `.env.nas.backup` (gitignored).
 
 ---
 
