@@ -2,27 +2,13 @@
 # Check if local .env.nas.backup matches NAS .env
 # Warns if out of sync (non-blocking)
 
+# Source common functions
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
+
 check_env_backup() {
-    local repo_root
-    repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || repo_root="."
-
-    local backup_file="$repo_root/.env.nas.backup"
-    local config_local="$repo_root/.claude/config.local.md"
-
-    # Read NAS host from config.local.md (expects "hostname.local" format)
-    local nas_host=""
-    local nas_user=""
-    if [[ -f "$config_local" ]]; then
-        nas_host=$(grep -oE '[a-zA-Z0-9_-]+\.local' "$config_local" 2>/dev/null | head -1)
-        nas_user=$(grep -oE 'SSH:\s*[a-zA-Z0-9_-]+@' "$config_local" 2>/dev/null | sed 's/SSH:\s*//' | sed 's/@$//' | head -1)
-    fi
-
-    # Skip if config not found
-    if [[ -z "$nas_host" ]]; then
-        echo "    SKIP: No NAS host in .claude/config.local.md"
-        return 0
-    fi
-    [[ -z "$nas_user" ]] && nas_user="admin"  # Default user
+    local repo_root backup_file
+    repo_root=$(get_repo_root)
+    backup_file="$repo_root/.env.nas.backup"
 
     # Skip if no backup file
     if [[ ! -f "$backup_file" ]]; then
@@ -30,31 +16,27 @@ check_env_backup() {
         return 0
     fi
 
-    # Try to reach NAS (quick ping, 1 second timeout)
-    if ! ping -c 1 -W 1 "$nas_host" &>/dev/null 2>&1; then
+    # Skip if NAS config not available
+    if ! has_nas_config; then
+        echo "    SKIP: No NAS host in .claude/config.local.md"
+        return 0
+    fi
+
+    # Check if NAS is reachable
+    if ! is_nas_reachable; then
         echo "    SKIP: NAS not reachable"
         return 0
     fi
 
-    # Check if SSH port is open (prevents hanging on firewall blocks)
-    # Uses bash /dev/tcp with 2-second timeout via subshell
-    if ! (exec 3<>/dev/tcp/"$nas_host"/22) 2>/dev/null; then
+    # Check if SSH port is open
+    if ! is_ssh_available; then
         echo "    SKIP: SSH port not reachable"
         return 0
     fi
 
     # Get NAS .env via SSH
-    # Use aggressive SSH timeouts to prevent hanging
-    # Requires NAS_SSH_PASS env var or SSH key auth
     local nas_env
-    local ssh_opts="-n -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=2 -o ConnectionAttempts=1 -o BatchMode=yes -o LogLevel=ERROR"
-
-    if [[ -n "$NAS_SSH_PASS" ]] && command -v sshpass &>/dev/null; then
-        nas_env=$(sshpass -p "$NAS_SSH_PASS" ssh $ssh_opts "$nas_user@$nas_host" "cat /volume1/docker/arr-stack/.env" 2>/dev/null)
-    else
-        # Use publickey only to fail fast if no keys configured
-        nas_env=$(ssh $ssh_opts -o PreferredAuthentications=publickey -o IdentitiesOnly=yes "$nas_user@$nas_host" "cat /volume1/docker/arr-stack/.env" 2>/dev/null)
-    fi
+    nas_env=$(ssh_to_nas "cat /volume1/docker/arr-stack/.env")
 
     # Skip if SSH failed
     if [[ -z "$nas_env" ]]; then
@@ -63,8 +45,10 @@ check_env_backup() {
     fi
 
     # Compare
-    local local_env
+    local local_env nas_host nas_user
     local_env=$(cat "$backup_file")
+    nas_host=$(get_nas_host)
+    nas_user=$(get_nas_user)
 
     if [[ "$nas_env" != "$local_env" ]]; then
         echo "    WARNING: .env.nas.backup differs from NAS .env"

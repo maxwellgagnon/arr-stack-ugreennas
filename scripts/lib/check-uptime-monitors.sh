@@ -2,10 +2,10 @@
 # Check Uptime Kuma monitors match expected services
 # Returns warnings only - does not block commits
 
-check_uptime_monitors() {
-    local repo_root
-    repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || repo_root="."
+# Source common functions
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
+check_uptime_monitors() {
     # Expected monitors (services that should be monitored)
     local expected=(
         "Bazarr"
@@ -23,49 +23,27 @@ check_uptime_monitors() {
         "WireGuard"
     )
 
-    # Read NAS host from config.local.md (expects "hostname.local" format)
-    local config_local="$repo_root/.claude/config.local.md"
-    local nas_host=""
-    local nas_user=""
-    if [[ -f "$config_local" ]]; then
-        nas_host=$(grep -oE '[a-zA-Z0-9_-]+\.local' "$config_local" 2>/dev/null | head -1)
-        nas_user=$(grep -oE 'SSH:\s*[a-zA-Z0-9_-]+@' "$config_local" 2>/dev/null | sed 's/SSH:\s*//' | sed 's/@$//' | head -1)
-    fi
-
-    # Skip if config not found
-    if [[ -z "$nas_host" ]]; then
+    # Skip if NAS config not available
+    if ! has_nas_config; then
         echo "    SKIP: No NAS host in .claude/config.local.md"
         return 0
     fi
-    [[ -z "$nas_user" ]] && nas_user="admin"  # Default user
 
-    # Check if NAS is reachable (quick ping, 1 second timeout)
-    if ! ping -c 1 -W 1 "$nas_host" &>/dev/null 2>&1; then
+    # Check if NAS is reachable
+    if ! is_nas_reachable; then
         echo "    SKIP: NAS not reachable"
         return 0
     fi
 
-    # Check if SSH port is open (prevents hanging on firewall blocks)
-    # Uses bash /dev/tcp with 2-second timeout via subshell
-    if ! (exec 3<>/dev/tcp/"$nas_host"/22) 2>/dev/null; then
+    # Check if SSH port is open
+    if ! is_ssh_available; then
         echo "    SKIP: SSH port not reachable"
         return 0
     fi
 
     # Get actual monitors from Uptime Kuma
-    # Use aggressive SSH timeouts to prevent hanging
-    # Requires NAS_SSH_PASS env var or SSH key auth
     local actual
-    local ssh_opts="-n -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=2 -o ConnectionAttempts=1 -o BatchMode=yes -o LogLevel=ERROR"
-
-    local docker_cmd="docker exec uptime-kuma sqlite3 /app/data/kuma.db \"SELECT name FROM monitor ORDER BY name;\""
-
-    if [[ -n "$NAS_SSH_PASS" ]] && command -v sshpass &>/dev/null; then
-        actual=$(sshpass -p "$NAS_SSH_PASS" ssh $ssh_opts "$nas_user@$nas_host" "$docker_cmd" 2>/dev/null)
-    else
-        # Use publickey only to fail fast if no keys configured
-        actual=$(ssh $ssh_opts -o PreferredAuthentications=publickey -o IdentitiesOnly=yes "$nas_user@$nas_host" "$docker_cmd" 2>/dev/null)
-    fi
+    actual=$(ssh_to_nas "docker exec uptime-kuma sqlite3 /app/data/kuma.db \"SELECT name FROM monitor ORDER BY name;\"")
 
     if [[ -z "$actual" ]]; then
         echo "    SKIP: Could not query Uptime Kuma (docker access failed)"

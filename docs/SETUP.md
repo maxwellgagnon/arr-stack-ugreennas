@@ -339,6 +339,16 @@ DOMAIN=yourdomain.com
 
 ### Update Traefik Config
 
+Copy the example configs and customize with your domain:
+
+```bash
+# Copy example configs
+cp traefik/traefik.yml.example traefik/traefik.yml
+cp traefik/dynamic/vpn-services.yml.example traefik/dynamic/vpn-services.yml
+# Or for Plex:
+# cp traefik/dynamic/vpn-services-plex.yml.example traefik/dynamic/vpn-services-plex.yml
+```
+
 Edit `traefik/traefik.yml` and replace `yourdomain.com` with your actual domain (3 places):
 
 ```yaml
@@ -352,7 +362,7 @@ domains:
 email: admin@yourdomain.com   # ← your email
 ```
 
-Also edit `traefik/dynamic/vpn-services.yml` (or `vpn-services-plex.yml` for Plex) and replace the Host rules:
+Edit `traefik/dynamic/vpn-services.yml` and replace the Host rules:
 
 ```yaml
 # Replace yourdomain.com with your actual domain
@@ -363,6 +373,8 @@ jellyseerr:
 wg:
   rule: "Host(`wg.yourdomain.com`)"  # ← your domain
 ```
+
+> **Note:** The `.yml` files are gitignored. Your customized configs won't be overwritten when you `git pull` updates.
 
 ---
 

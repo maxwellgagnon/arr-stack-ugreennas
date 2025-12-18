@@ -1,65 +1,34 @@
 #!/bin/bash
 # Hardcoded domain/hostname detection
 # Scans ALL tracked files in repo (not just staged) for security
-# Reads domain from .env or .env.nas.backup, hostname from .claude/config.local.md
+
+# Source common functions
+source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
 check_hardcoded_domain() {
     local warnings=0
-    local repo_root
-    repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || repo_root="."
 
-    local env_file="$repo_root/.env"
-    local env_backup="$repo_root/.env.nas.backup"
-    local config_local="$repo_root/.claude/config.local.md"
-
-    # Use .env.nas.backup as fallback for local development
-    local secrets_file=""
-    if [[ -f "$env_file" ]]; then
-        secrets_file="$env_file"
-    elif [[ -f "$env_backup" ]]; then
-        secrets_file="$env_backup"
-    fi
-
-    # Try to find NAS hostname from config.local.md
-    local nas_hostname=""
-    if [[ -f "$config_local" ]]; then
-        nas_hostname=$(grep -oE '[a-zA-Z0-9_-]+\.local' "$config_local" 2>/dev/null | head -1 | sed 's/\.local$//')
-    fi
-
-    # Extract domain from secrets file
-    local domain=""
-    if [[ -n "$secrets_file" ]]; then
-        domain=$(grep -E '^DOMAIN=' "$secrets_file" 2>/dev/null | cut -d= -f2 | tr -d '"' | tr -d "'")
-    fi
-
-    # Check both staged files AND all tracked files in the repo
-    # This ensures we catch issues even if commits slipped through before
-    local staged_files
-    staged_files=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep -v '^\.env$')
-
-    local all_tracked_files
-    all_tracked_files=$(git ls-files 2>/dev/null | grep -v '^\.env$')
-
-    # Combine and deduplicate
+    # Get files to scan
     local files_to_check
-    files_to_check=$(echo -e "$staged_files\n$all_tracked_files" | sort -u | grep -v '^$')
+    files_to_check=$(get_files_to_scan)
 
     if [[ -z "$files_to_check" ]]; then
         return 0
     fi
 
+    # Get domain and hostname to check for
+    local domain nas_hostname
+    domain=$(get_domain)
+    nas_hostname=$(get_nas_hostname)
+
     # Check for domain if configured
-    if [[ -n "$domain" && "$domain" != "yourdomain.com" ]]; then
+    if has_custom_domain; then
         local files_with_domain=""
         for file in $files_to_check; do
-            # Get file content (read actual file, not just staged version)
-            local content
-            content=$(cat "$file" 2>/dev/null) || continue
+            is_binary_file "$file" && continue
 
-            # Skip binary files
-            case "$file" in
-                *.png|*.jpg|*.gif|*.ico|*.woff|*.ttf|*.svg) continue ;;
-            esac
+            local content
+            content=$(read_file_content "$file") || continue
 
             # Check for domain (case insensitive)
             if echo "$content" | grep -qi "$domain" 2>/dev/null; then
@@ -77,10 +46,12 @@ check_hardcoded_domain() {
             echo "          Review to ensure this is intentional."
         fi
     else
-        if [[ -z "$secrets_file" ]]; then
+        local repo_root
+        repo_root=$(get_repo_root)
+        if [[ ! -f "$repo_root/.env" && ! -f "$repo_root/.env.nas.backup" ]]; then
             echo "    SKIP: No .env or .env.nas.backup (can't determine domain)"
         else
-            echo "    SKIP: No custom domain in $secrets_file"
+            echo "    SKIP: No custom domain configured"
         fi
     fi
 
@@ -89,13 +60,10 @@ check_hardcoded_domain() {
         local files_with_hostname=""
         local hostname_errors=0
         for file in $files_to_check; do
-            local content
-            content=$(cat "$file" 2>/dev/null) || continue
+            is_binary_file "$file" && continue
 
-            # Skip binary files
-            case "$file" in
-                *.png|*.jpg|*.gif|*.ico|*.woff|*.ttf|*.svg) continue ;;
-            esac
+            local content
+            content=$(read_file_content "$file") || continue
 
             # Check for hostname (case insensitive)
             if echo "$content" | grep -qi "$nas_hostname" 2>/dev/null; then
@@ -115,7 +83,7 @@ check_hardcoded_domain() {
     fi
 
     # Output OK if we checked something and found no issues
-    if [[ $warnings -eq 0 && -n "$domain" && "$domain" != "yourdomain.com" ]]; then
+    if [[ $warnings -eq 0 ]] && has_custom_domain; then
         echo "    OK: No hardcoded domain/hostname found"
     fi
 

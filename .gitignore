@@ -12,6 +12,11 @@
 traefik/acme.json
 traefik/*.json
 
+# Traefik Config Files (copy from .example and customize)
+traefik/traefik.yml
+traefik/dynamic/vpn-services.yml
+traefik/dynamic/vpn-services-plex.yml
+
 # Cloudflared Credentials (locally-managed tunnel)
 cloudflared/config.yml
 cloudflared/credentials.json

@@ -28,6 +28,9 @@ else
     RED='' GREEN='' YELLOW='' BLUE='' NC=''
 fi
 
+# Source common library first (caches NAS config for all checks)
+source "$SCRIPT_DIR/lib/common.sh"
+
 # Source helper functions
 source "$SCRIPT_DIR/lib/check-secrets.sh"
 source "$SCRIPT_DIR/lib/check-env-vars.sh"
