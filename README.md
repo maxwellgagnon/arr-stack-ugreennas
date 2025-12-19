@@ -8,7 +8,7 @@ A complete, production-ready Docker Compose stack for automated media management
 >
 > <a href='https://ko-fi.com/X8X01NIXRB' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 
-**Works on:** Ugreen NAS, Synology, QNAP, or any Docker host.
+**Works on:** Ugreen NAS, Synology, QNAP, or any Docker host. (Tested on Ugreen DXP4800+)
 
 ## Legal Notice
 
