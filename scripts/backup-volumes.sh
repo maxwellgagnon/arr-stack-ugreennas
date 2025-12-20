@@ -98,8 +98,17 @@ BACKUP_DIR="${BACKUP_DIR:-/tmp/arr-stack-backup-$(date +%Y%m%d)}"
 # Check available space (warn if low, but continue anyway)
 BACKUP_PARENT=$(dirname "$BACKUP_DIR")
 AVAILABLE_MB=$(df -m "$BACKUP_PARENT" 2>/dev/null | awk 'NR==2 {print $4}')
-if [ -n "$AVAILABLE_MB" ] && [ "$AVAILABLE_MB" -lt 200 ]; then
-  echo "WARNING: Low space on $BACKUP_PARENT (${AVAILABLE_MB}MB available)"
+
+# Estimate required space: check last backup size, or default to 100MB
+LAST_BACKUP=$(find "$BACKUP_PARENT" -maxdepth 1 -name "arr-stack-backup-*.tar.gz" -type f 2>/dev/null | sort | tail -1)
+if [ -n "$LAST_BACKUP" ] && [ -f "$LAST_BACKUP" ]; then
+  REQUIRED_MB=$(( $(stat -f%z "$LAST_BACKUP" 2>/dev/null || stat -c%s "$LAST_BACKUP" 2>/dev/null) / 1024 / 1024 * 2 ))  # 2x last backup
+else
+  REQUIRED_MB=100  # Conservative default for first backup
+fi
+
+if [ -n "$AVAILABLE_MB" ] && [ "$AVAILABLE_MB" -lt "$REQUIRED_MB" ]; then
+  echo "WARNING: Low space on $BACKUP_PARENT (${AVAILABLE_MB}MB available, need ~${REQUIRED_MB}MB)"
   echo "         Backup may fail if space runs out"
   echo ""
 fi
