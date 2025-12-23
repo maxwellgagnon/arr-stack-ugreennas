@@ -115,3 +115,13 @@ docker compose -f docker-compose.arr-stack.yml up -d
 | traefik-proxy | 192.168.100.0/24 | Service communication |
 | vpn-net | 10.8.1.0/24 | Internal VPN routing (WireGuard peers) |
 | traefik-lan | (your LAN)/24 | macvlan - gives Traefik its own LAN IP for .lan domains |
+
+## Startup Order
+
+Services start in dependency order (handled automatically by `depends_on`):
+
+1. **Pi-hole** → DNS ready
+2. **Gluetun** → VPN connected (uses Pi-hole for DNS)
+3. **Sonarr, Radarr, Prowlarr, qBittorrent, SABnzbd** → VPN-protected services
+4. **Jellyseerr, Bazarr** → Connect to Sonarr/Radarr via Gluetun
+5. **Jellyfin, WireGuard, FlareSolverr** → Independent, start anytime

@@ -345,6 +345,9 @@ services:
   jellyseerr:
     image: fallenbagel/jellyseerr:latest
     container_name: jellyseerr
+    depends_on:
+      gluetun:
+        condition: service_healthy  # Needs gluetun to reach Sonarr/Radarr
     ports:
       - "5055:5055"  # Local network access (all interfaces)
     environment:
@@ -374,6 +377,9 @@ services:
   bazarr:
     image: lscr.io/linuxserver/bazarr:latest
     container_name: bazarr
+    depends_on:
+      gluetun:
+        condition: service_healthy  # Needs gluetun to reach Sonarr/Radarr
     ports:
       - "6767:6767"  # Local network access
     environment:

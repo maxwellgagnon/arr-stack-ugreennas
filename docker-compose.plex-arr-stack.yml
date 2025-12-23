@@ -356,6 +356,9 @@ services:
   overseerr:
     image: lscr.io/linuxserver/overseerr:latest
     container_name: overseerr
+    depends_on:
+      gluetun:
+        condition: service_healthy  # Needs gluetun to reach Sonarr/Radarr
     ports:
       - "5055:5055"  # Local network access
     environment:
@@ -384,6 +387,9 @@ services:
   bazarr:
     image: lscr.io/linuxserver/bazarr:latest
     container_name: bazarr
+    depends_on:
+      gluetun:
+        condition: service_healthy  # Needs gluetun to reach Sonarr/Radarr
     ports:
       - "6767:6767"  # Local network access
     environment:
