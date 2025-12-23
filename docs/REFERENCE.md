@@ -1,5 +1,36 @@
 # Quick Reference: URLs, Commands, Network
 
+## Local Access (.lan domains)
+
+Port-free access from any device on your LAN:
+
+| URL | Service |
+|-----|---------|
+| `http://jellyfin.lan` | Jellyfin |
+| `http://jellyseerr.lan` | Jellyseerr |
+| `http://sonarr.lan` | Sonarr |
+| `http://radarr.lan` | Radarr |
+| `http://prowlarr.lan` | Prowlarr |
+| `http://bazarr.lan` | Bazarr |
+| `http://qbit.lan` | qBittorrent |
+| `http://sabnzbd.lan` | SABnzbd |
+| `http://traefik.lan` | Traefik Dashboard |
+| `http://pihole.lan/admin` | Pi-hole |
+| `http://wg.lan` | WireGuard |
+| `http://uptime.lan` | Uptime Kuma |
+
+> **Setup required:** See [Setup guide section 5.11](SETUP.md#511-local-dns-lan-domains--optional) for router DHCP + Pi-hole DNS configuration.
+
+## External Access (via Cloudflare Tunnel)
+
+| URL | Service | Auth |
+|-----|---------|------|
+| `https://jellyfin.${DOMAIN}` | Jellyfin | ✅ Built-in |
+| `https://jellyseerr.${DOMAIN}` | Jellyseerr | ✅ Built-in |
+| `https://wg.${DOMAIN}` | WireGuard | ✅ Password |
+
+All other services are **LAN-only** (not exposed to internet).
+
 ## Services & Network
 
 | Service | IP | Port | Notes |
@@ -25,39 +56,6 @@
 | Cloudflared | 192.168.100.12 | — | Tunnel (no ports exposed) |
 | Uptime Kuma | 192.168.100.13 | 3001 | Monitoring |
 | duc | — | 8838 | Disk usage (no static IP) |
-
-### External Access (internet-exposed via Cloudflare Tunnel)
-
-| URL | Service | Auth |
-|-----|---------|------|
-| `https://jellyfin.${DOMAIN}` | Jellyfin | ✅ Built-in |
-| `https://jellyseerr.${DOMAIN}` | Jellyseerr | ✅ Built-in |
-| `https://wg.${DOMAIN}` | WireGuard | ✅ Password |
-
-All other services are **LAN-only** (not exposed to internet).
-
-### Local Access (.lan domains)
-
-Port-free access from any device using Pi-hole DNS + Traefik macvlan:
-
-| URL | Service |
-|-----|---------|
-| `http://jellyfin.lan` | Jellyfin |
-| `http://jellyseerr.lan` | Jellyseerr |
-| `http://sonarr.lan` | Sonarr |
-| `http://radarr.lan` | Radarr |
-| `http://prowlarr.lan` | Prowlarr |
-| `http://bazarr.lan` | Bazarr |
-| `http://qbit.lan` | qBittorrent |
-| `http://sabnzbd.lan` | SABnzbd |
-| `http://traefik.lan` | Traefik Dashboard |
-| `http://pihole.lan/admin` | Pi-hole |
-| `http://wg.lan` | WireGuard |
-| `http://uptime.lan` | Uptime Kuma |
-
-> **How it works:** Traefik gets its own LAN IP via macvlan (e.g., 10.10.0.11) where it owns port 80. Pi-hole DNS resolves `.lan` → Traefik's IP. See [Setup guide section 5.11](SETUP.md#511-local-dns-lan-domains--optional).
->
-> **Requires:** macvlan env vars in `.env`, DHCP reservation in router, Pi-hole as network DNS.
 
 ### Service Connection Guide
 
